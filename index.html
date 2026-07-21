@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Speedway</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage">
+  <canvas id="track" width="1100" height="650"></canvas>
+
+  <div id="hud">
+    <div id="hudPos">P1</div>
+    <div id="hudLap">Lap 1 / 4</div>
+    <div id="hudSpeed">0 km/h</div>
+  </div>
+
+  <div id="overlay">
+    <div id="menuScreen" class="panel">
+      <h1>SPEEDWAY</h1>
+      <p class="sub">One button. All left turns.</p>
+      <ul class="rules">
+        <li><b>Hold SPACE</b> (or press and hold on screen) to steer left.</li>
+        <li>The bike always drives forward &mdash; there is no throttle or brake.</li>
+        <li>Turning breaks traction: hold too long and you'll slide wide and lose speed.</li>
+        <li>4 laps, 4 riders. Beat the field.</li>
+      </ul>
+      <button id="startBtn">START RACE</button>
+    </div>
+
+    <div id="countdownScreen" class="panel hidden">
+      <div id="countdownNum">3</div>
+    </div>
+
+    <div id="resultsScreen" class="panel hidden">
+      <h1>RACE OVER</h1>
+      <ol id="resultsList"></ol>
+      <div id="recordLine"></div>
+      <button id="restartBtn">RACE AGAIN</button>
+    </div>
+  </div>
+
+  <button id="steerBtn">HOLD TO STEER LEFT</button>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
