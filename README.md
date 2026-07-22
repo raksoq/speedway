@@ -150,13 +150,15 @@ player is Tomasz Gollob.
 
 ## Scoring
 
-3-2-1-0 per heat, PGE Ekstraliga style. The race ends the moment the player
-finishes, rather than waiting for the AI to complete their own laps - anyone
-still on track at that point is ranked below the finishers by current
-on-track position (`Bike.progress`), not left to keep racing or DNF'd
-arbitrarily. Their result shows exactly how far they got, e.g.
+3-2-1-0 per heat, PGE Ekstraliga style, and every rider scores by their
+finishing *position*, not by whether they officially finished. The race ends
+the moment the player finishes, rather than waiting for the AI to complete
+their own laps, so most races only have one true finisher - anyone still on
+track at that point is ranked below the finishers by current on-track
+position (`Bike.progress`), gets 2nd/3rd/4th place points same as if they'd
+crossed the line, and their result shows exactly how far they got, e.g.
 `DNF (3.9/4 laps)`, computed from that same progress value, rather than a bare
-"DNF" that hides whether they were a few metres behind or barely off the line.
+"DNF (0 pkt)" that both hid their distance and zeroed their score.
 
 ## Verification approach
 

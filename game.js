@@ -451,7 +451,10 @@ function finishRace() {
     // or two behind or barely out of the gate
     const lapsDone = Math.min(b.progress / TRACK.totalLength, TOTAL_LAPS);
     const t = b.finished ? formatTime(b.finishTime) : `DNF (${lapsDone.toFixed(1)}/${TOTAL_LAPS} laps)`;
-    const pts = b.finished ? HEAT_POINTS[i] : 0;
+    // points go by finishing position, not completion status - `order` is already
+    // sorted correctly (finish time first, then on-track progress for the rest), so
+    // whoever ran further/faster still outscores whoever ran less, DNF or not
+    const pts = HEAT_POINTS[i];
     li.textContent = `${b.name} — ${pts} pkt (${t})`;
     if (b.isPlayer) li.classList.add("you");
     resultsList.appendChild(li);
