@@ -364,28 +364,29 @@ let inputLeft = false;
 let inputRight = false;
 let bestLapThisRace = Infinity;
 
+// Real FIM/PGE Ekstraliga gate colours, in order: red (gate 1), blue (gate 2),
+// white (gate 3), yellow (gate 4).
 const COLORS = [
+  { color: "#e74c3c", name: "RIDER 1" },
+  { color: "#3d7fe0", name: "RIDER 2" },
+  { color: "#eeeeee", name: "RIDER 3" },
   { color: "#ffd23f", name: "YOU" },
-  { color: "#ff5d3b", name: "RIDER 2" },
-  { color: "#6fd3ff", name: "RIDER 3" },
-  { color: "#8effa1", name: "RIDER 4" },
 ];
 
 function setupRace() {
-  bikes = COLORS.map((c, i) => new Bike(c.color, c.name, i === 0));
+  bikes = COLORS.map((c, i) => new Bike(c.color, c.name, i === 3));
   const lvl = AI_LEVELS[aiDifficulty] || AI_LEVELS.medium;
-  // stagger starting positions across the track width and slightly back from the line
+  // Regulation start: all 4 riders on one line, side by side in their own marked gate.
+  const p = centerlineAt(START_S);
+  const nx = -Math.sin(p.angle), ny = Math.cos(p.angle);
+  const halfW = trackHalfWidthAt(START_S);
   bikes.forEach((b, i) => {
-    const laneOffset = -TRACK.width * 0.34 + i * (TRACK.width * 0.22);
-    const backOffset = i * 22;
-    const s = START_S - backOffset;
-    const p = centerlineAt(s);
-    const nx = -Math.sin(p.angle), ny = Math.cos(p.angle);
+    const laneOffset = -halfW + halfW * 2 * ((i + 0.5) / bikes.length);
     b.x = p.x + nx * laneOffset;
     b.y = p.y + ny * laneOffset;
     b.heading = p.angle;
-    b.trackS = s;
-    b._lastS = s;
+    b.trackS = START_S;
+    b._lastS = START_S;
     if (!b.isPlayer) {
       b.aiLine = laneOffset * 0.5;
       b.aiThreshold = lvl.thresholdBase + Math.random() * lvl.thresholdVar;
@@ -393,7 +394,7 @@ function setupRace() {
       b.aiSkillJitter = lvl.jitterBase + Math.random() * lvl.jitterVar;
     }
   });
-  playerBike = bikes[0];
+  playerBike = bikes.find((b) => b.isPlayer);
   raceElapsed = 0;
   bestLapThisRace = Infinity;
 }
@@ -540,7 +541,9 @@ function updateHud() {
   hudPos.textContent = `P${pos}`;
   const lapShown = Math.min(playerBike.lap + 1, TOTAL_LAPS);
   hudLap.textContent = `Lap ${lapShown} / ${TOTAL_LAPS}`;
-  hudSpeed.textContent = `${Math.round(playerBike.speed * 1.3)} km/h`;
+  // real speedway bikes top out around 125-130 km/h on the straight (Maciej Janowski's
+  // individual record is 126.1 km/h), so PHYS.maxSpeed maps to ~125 km/h here
+  hudSpeed.textContent = `${Math.round(playerBike.speed * 0.5)} km/h`;
 }
 
 // ---------- Render ----------
@@ -729,6 +732,26 @@ function drawTrack() {
   const nx = -Math.sin(p.angle), ny = Math.cos(p.angle);
   const halfW = trackHalfWidthAt(START_S);
   drawChecker(p.x - nx * halfW, p.y - ny * halfW, p.x + nx * halfW, p.y + ny * halfW);
+  drawStartGrid(p, nx, ny, halfW);
+}
+
+// Regulation starting grid: 4 gates marked by lines at right angles to the start line,
+// extending back behind it - all riders line up on the same line, side by side.
+function drawStartGrid(p, nx, ny, halfW) {
+  const tx = Math.cos(p.angle), ty = Math.sin(p.angle);
+  const lanes = 4;
+  const gateDepth = 26;
+  ctx.strokeStyle = "rgba(255,255,255,0.75)";
+  ctx.lineWidth = 2;
+  for (let i = 1; i < lanes; i++) {
+    const off = -halfW + (halfW * 2 * i) / lanes;
+    const bx = p.x + nx * off, by = p.y + ny * off;
+    const ex = bx - tx * gateDepth, ey = by - ty * gateDepth;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+  }
 }
 
 function drawChecker(x1, y1, x2, y2) {
