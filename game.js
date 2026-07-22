@@ -366,15 +366,13 @@ let bestLapThisRace = Infinity;
 
 // Real FIM/PGE Ekstraliga gate colours, in order: red (gate 1), blue (gate 2),
 // white (gate 3), yellow (gate 4).
-const COLORS = [
-  { color: "#e74c3c", name: "RIDER 1" },
-  { color: "#3d7fe0", name: "RIDER 2" },
-  { color: "#eeeeee", name: "RIDER 3" },
-  { color: "#ffd23f", name: "YOU" },
-];
+const GATE_COLORS = ["#e74c3c", "#3d7fe0", "#eeeeee", "#ffd23f"];
 
 function setupRace() {
-  bikes = COLORS.map((c, i) => new Bike(c.color, c.name, i === 3));
+  const playerGate = Math.floor(Math.random() * GATE_COLORS.length);
+  bikes = GATE_COLORS.map((color, i) =>
+    new Bike(color, i === playerGate ? "YOU" : `RIDER ${i + 1}`, i === playerGate)
+  );
   const lvl = AI_LEVELS[aiDifficulty] || AI_LEVELS.medium;
   // Regulation start: all 4 riders on one line, side by side in their own marked gate.
   const p = centerlineAt(START_S);
