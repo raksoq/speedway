@@ -42,14 +42,16 @@ Three files, no modules:
      then a fence that hard-stops the bike (recovery only cancels the velocity
      component still pressing into the fence, not the whole vector — see the
      bug note in `README.md` if touching this).
-  3. **AI** — `aiSteer`/`aiControl` (steering decision) and `AI_LEVELS` (five
-     difficulty tiers tuning reaction threshold, lookahead, and hesitation
-     jitter — see `README.md` for the full table). AI only steers left except
-     for a fence-recovery override.
+  3. **AI** — `aiSteer`/`aiControl` (steering decision) and `AI_LEVELS`
+     (difficulty tiers tuning reaction threshold, lookahead, and hesitation
+     jitter — see `README.md` for the full table and tuning gotchas). AI only
+     steers left except for a fence-recovery override.
   4. **Game/DOM wiring** — element refs, `GATE_COLORS`/`LEGEND_NAMES`,
      `setupRace()`, `startCountdown()`, `finishRace()`, input listeners.
   5. **Loop** — `frame()` drives both game-state updates and rendering every
-     animation frame; `updateHud()`.
+     animation frame; `updateHud()`. The race ends as soon as the player
+     finishes (`playerBike.finished`), not when every rider does — AI still on
+     track at that point are ranked by current position, not left running.
   6. **Rendering** — track/grandstand/roof/bike drawing functions, all
      `ctx`-based canvas calls.
 
