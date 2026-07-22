@@ -340,7 +340,9 @@ const diffBtns = document.querySelectorAll(".diffBtn");
 
 const TOTAL_LAPS = 4;
 const RECORD_KEY = "speedway_best_lap";
-const HEAT_POINTS = [3, 2, 1, 0]; // PGE Ekstraliga-style scoring: 3-2-1-0 per heat
+// PGE Ekstraliga-style scoring: 3-2-1-0 per heat (only the top 3 score; a 5th rider still
+// scores 0, same as 4th, rather than inventing a negative or extra tier).
+const HEAT_POINTS = [3, 2, 1, 0, 0];
 
 // Computer rider difficulty presets. Threshold is how much angular error the AI tolerates
 // before it steers (higher = later, sloppier reactions); jitter is the chance it actually
@@ -349,7 +351,7 @@ const HEAT_POINTS = [3, 2, 1, 0]; // PGE Ekstraliga-style scoring: 3-2-1-0 per h
 // ends up over-steering (holding the engine-penalized turn input too much), which is slower;
 // a longer, smoother lookahead combined with rarely hesitating is what actually wins races.
 const AI_LEVELS = {
-  easy: { thresholdBase: 0.14, thresholdVar: 0.10, lookBase: 75, lookVar: 25, jitterBase: 0.55, jitterVar: 0.20 },
+  easy: { thresholdBase: 0.24, thresholdVar: 0.12, lookBase: 45, lookVar: 15, jitterBase: 0.35, jitterVar: 0.15 },
   medium: { thresholdBase: 0.05, thresholdVar: 0.07, lookBase: 55, lookVar: 25, jitterBase: 0.85, jitterVar: 0.30 },
   hard: { thresholdBase: 0.04, thresholdVar: 0.05, lookBase: 70, lookVar: 20, jitterBase: 1.1, jitterVar: 0.1 },
 };
@@ -364,9 +366,10 @@ let inputLeft = false;
 let inputRight = false;
 let bestLapThisRace = Infinity;
 
-// Real FIM/PGE Ekstraliga gate colours, in order: red (gate 1), blue (gate 2),
-// white (gate 3), yellow (gate 4).
-const GATE_COLORS = ["#e74c3c", "#3d7fe0", "#eeeeee", "#ffd23f"];
+// Real FIM/PGE Ekstraliga gate colours (red, blue, white, yellow for gates 1-4), plus an
+// extra green gate for the 5th rider - real speedway only runs 4 in a heat, but this game
+// races one more for a fuller field.
+const GATE_COLORS = ["#e74c3c", "#3d7fe0", "#eeeeee", "#ffd23f", "#3fae5c"];
 
 function setupRace() {
   const playerGate = Math.floor(Math.random() * GATE_COLORS.length);
@@ -773,11 +776,11 @@ function drawTrack() {
   drawStartGrid(p, nx, ny, halfW);
 }
 
-// Regulation starting grid: 4 gates marked by lines at right angles to the start line,
-// extending back behind it - all riders line up on the same line, side by side.
+// Regulation starting grid: one gate per rider, marked by lines at right angles to the
+// start line and extending back behind it - all riders line up on the same line, side by side.
 function drawStartGrid(p, nx, ny, halfW) {
   const tx = Math.cos(p.angle), ty = Math.sin(p.angle);
-  const lanes = 4;
+  const lanes = GATE_COLORS.length;
   const gateDepth = 26;
   ctx.strokeStyle = "rgba(255,255,255,0.75)";
   ctx.lineWidth = 2;
