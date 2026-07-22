@@ -13,6 +13,7 @@
     <div id="hudPos">P1</div>
     <div id="hudLap">Lap 1 / 4</div>
     <div id="hudSpeed">0 km/h</div>
+    <div id="hudHeat" class="hidden">Heat 1/5</div>
     <button id="resetBtn">RESET</button>
   </div>
 
@@ -42,6 +43,10 @@
           <input type="checkbox" id="legendsToggle" checked>
           <span>Legends mode &mdash; race Mauger, Nielsen &amp; Hancock</span>
         </label>
+        <label class="modeToggle">
+          <input type="checkbox" id="meetingToggle">
+          <span>5-heat meeting &mdash; points carry over, best total wins</span>
+        </label>
       </div>
       <button id="startBtn">START RACE</button>
     </div>
@@ -51,8 +56,12 @@
     </div>
 
     <div id="resultsScreen" class="panel hidden">
-      <h1>RACE OVER</h1>
+      <h1 id="resultsTitle">RACE OVER</h1>
       <ol id="resultsList"></ol>
+      <div id="standingsBlock" class="hidden">
+        <span class="standingsLabel">Meeting standings</span>
+        <ol id="standingsList"></ol>
+      </div>
       <div id="recordLine"></div>
       <button id="restartBtn">RACE AGAIN</button>
     </div>

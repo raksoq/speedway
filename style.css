@@ -52,6 +52,9 @@ canvas#track {
 
 #hudPos { color: #ffd23f; }
 #hudSpeed { color: #6fd3ff; }
+#hudHeat { color: #8effa1; }
+
+.hidden { display: none; }
 
 #resetBtn {
   pointer-events: auto;
@@ -164,6 +167,7 @@ canvas#track {
 }
 
 .modeToggle input { accent-color: #ffd23f; width: 15px; height: 15px; }
+.modeToggle + .modeToggle { margin-top: 8px; }
 
 button {
   background: #ff5d3b;
@@ -197,6 +201,33 @@ button:active { transform: scale(0.96); }
 }
 
 #resultsList .you { color: #ffd23f; font-weight: 800; }
+
+#standingsBlock {
+  margin: 0 0 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+}
+
+.standingsLabel {
+  display: block;
+  color: #9fb0c3;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+#standingsList {
+  text-align: left;
+  margin: 0;
+  padding-left: 26px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #cfd8e3;
+}
+
+#standingsList .you { color: #ffd23f; font-weight: 800; }
+#standingsList .leader { color: #8effa1; }
 
 #recordLine {
   font-size: 12.5px;

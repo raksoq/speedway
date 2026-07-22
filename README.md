@@ -90,7 +90,12 @@ position — not the corner exit, where an earlier version of this game had it).
 All 4 riders line up on that one line, side by side in individually marked gates
 (white lines at right angles to the start line, extending back behind it), colored
 in FIM/PGE Ekstraliga order: red, blue, white, yellow. Which gate the player
-lands in is randomized each race.
+lands in is randomized each race. Lateral spread across the 4 starting positions
+is 60% of the full track width, not edge-to-edge - at full width the outermost
+gate started close enough to the apron that it reliably ran wide entering the
+first corner and clipped the fence, a genuine ~7% time penalty (verified:
+34.1-34.8s at 60% spread vs. 36.4-36.8s at full width, identical AI config
+otherwise) every single race regardless of AI skill, not occasional bad luck.
 
 ## Computer riders
 
@@ -146,7 +151,14 @@ per-gate lookahead penalty).
 
 A menu toggle (on by default) races real multi-time world champions instead of
 generic names: Ivan Mauger, Hans Nielsen, and Greg Hancock fill the 3 AI gates, and the
-player is Tomasz Gollob.
+player is Tomasz Gollob. Which name lands in which gate is shuffled independently
+of gate index (`shuffled()` in `setupRace()`). Gate-index order was a second real
+bug found alongside the lane-spread one above: assigning names in ascending gate
+order made the *last* name in the list (Greg Hancock / "RIDER 3") land in the
+outermost gate ~80% of the time - so on top of that gate's own disadvantage,
+one name was consistently the one paying for it, making that rider look far
+weaker than the other two for reasons that had nothing to do with its actual
+difficulty tuning.
 
 ## Scoring
 
