@@ -346,15 +346,22 @@ const HEAT_POINTS = [3, 2, 1, 0];
 
 // Computer rider difficulty presets. Threshold is how much angular error the AI tolerates
 // before it steers (higher = later, sloppier reactions); jitter is the chance it actually
-// acts on that decision each frame (lower = more hesitation/missed corrections). A shorter
-// lookahead alone doesn't make an AI faster - it reacts to a closer, twitchier target and
-// ends up over-steering (holding the engine-penalized turn input too much), which is slower;
-// a longer, smoother lookahead combined with rarely hesitating is what actually wins races.
+// acts on that decision each frame (lower = more hesitation/missed corrections); lookahead
+// is how far ahead it aims.
+//
+// Real speedway heats don't have lapping - 4 laps is short enough that even the last-place
+// finisher is only seconds behind, never a full lap down. Jitter has a hard cliff around
+// ~0.5: below it, missed corrections start compounding (a missed correction means a bit more
+// drift, which means the next correction is bigger and more likely to be missed too), and a
+// single bad run can blow out to 50s+ instead of ~34s. All four tiers are kept above that
+// cliff (jitter 0.58-0.95) and differentiated mainly by threshold/lookahead instead, which
+// varies pace by only a couple of seconds - deliberately a tight spread rather than a wide
+// one, so no difficulty selection can result in an AI rider getting lapped.
 const AI_LEVELS = {
-  easy: { thresholdBase: 0.23, thresholdVar: 0.12, lookBase: 45, lookVar: 15, jitterBase: 0.36, jitterVar: 0.14 },
-  medium: { thresholdBase: 0.16, thresholdVar: 0.10, lookBase: 48, lookVar: 18, jitterBase: 0.45, jitterVar: 0.15 },
-  hard: { thresholdBase: 0.17, thresholdVar: 0.10, lookBase: 49, lookVar: 19, jitterBase: 0.50, jitterVar: 0.16 },
-  expert: { thresholdBase: 0.05, thresholdVar: 0.07, lookBase: 55, lookVar: 25, jitterBase: 0.85, jitterVar: 0.30 },
+  easy: { thresholdBase: 0.14, thresholdVar: 0.04, lookBase: 46, lookVar: 6, jitterBase: 0.58, jitterVar: 0.08 },
+  medium: { thresholdBase: 0.10, thresholdVar: 0.03, lookBase: 49, lookVar: 6, jitterBase: 0.66, jitterVar: 0.08 },
+  hard: { thresholdBase: 0.07, thresholdVar: 0.03, lookBase: 52, lookVar: 6, jitterBase: 0.78, jitterVar: 0.08 },
+  expert: { thresholdBase: 0.05, thresholdVar: 0.03, lookBase: 56, lookVar: 8, jitterBase: 0.95, jitterVar: 0.08 },
 };
 let aiDifficulty = "medium";
 
@@ -401,9 +408,15 @@ function setupRace() {
     b.trackS = START_S;
     b._lastS = START_S;
     if (!b.isPlayer) {
-      b.aiLine = laneOffset * 0.5;
+      // aiLine used to bias each AI toward its starting lane (laneOffset * 0.5), and
+      // lookahead used to shrink per gate index (- i * 4) for a bit of natural variety.
+      // Both turned out to be a structural bug: whichever AI ended up in the outermost
+      // gate got pushed toward an outward line *and* given the worst lookahead of the
+      // three, so it reliably clipped the fence every race - not bad luck, a guaranteed
+      // weak link that could fall most of a lap behind (see README's "no lapping" note).
+      b.aiLine = 0;
       b.aiThreshold = lvl.thresholdBase + Math.random() * lvl.thresholdVar;
-      b.aiLook = lvl.lookBase + Math.random() * lvl.lookVar - i * 4;
+      b.aiLook = lvl.lookBase + Math.random() * lvl.lookVar;
       b.aiSkillJitter = lvl.jitterBase + Math.random() * lvl.jitterVar;
     }
   });
@@ -433,7 +446,11 @@ function finishRace() {
   resultsList.innerHTML = "";
   order.forEach((b, i) => {
     const li = document.createElement("li");
-    const t = b.finished ? formatTime(b.finishTime) : "DNF";
+    // for non-finishers, show how far they actually got (fractional laps from their
+    // on-track progress) rather than a bare "DNF" that hides whether they were a metre
+    // or two behind or barely out of the gate
+    const lapsDone = Math.min(b.progress / TRACK.totalLength, TOTAL_LAPS);
+    const t = b.finished ? formatTime(b.finishTime) : `DNF (${lapsDone.toFixed(1)}/${TOTAL_LAPS} laps)`;
     const pts = b.finished ? HEAT_POINTS[i] : 0;
     li.textContent = `${b.name} — ${pts} pkt (${t})`;
     if (b.isPlayer) li.classList.add("you");

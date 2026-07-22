@@ -106,21 +106,22 @@ Four difficulty presets (`AI_LEVELS`) tune three knobs per AI rider:
 - **jitter** — the chance it acts on a steering decision each frame. Lower means
   more hesitation and missed corrections.
 
-| | threshold | lookahead | jitter | ~avg finish (4 laps, headless sim) |
+| | threshold | lookahead | jitter | ~solo 4-lap time (headless sim) |
 |---|---|---|---|---|
-| Easy | 0.23-0.35 | 45-60 | 0.36-0.50 | ~46.5s |
-| Medium | 0.16-0.26 | 48-66 | 0.45-0.60 | ~41s |
-| Hard | 0.17-0.27 | 49-68 | 0.50-0.66 | ~37s |
-| Expert | 0.05-0.12 | 55-80 | 0.85-1.15 | ~34s |
+| Easy | 0.14-0.18 | 46-52 | 0.58-0.66 | ~35.0s |
+| Medium | 0.10-0.13 | 49-55 | 0.66-0.74 | ~34.2s |
+| Hard | 0.07-0.10 | 52-58 | 0.78-0.86 | ~33.7s |
+| Expert | 0.05-0.08 | 56-64 | 0.95-1.03 | ~33.3s |
 
-Easy/Medium/Hard/Expert are spaced out deliberately, each a step tuned partway
-between its neighbors rather than reusing an old tier's numbers wholesale - an
-earlier version jumped straight from Easy (~48s) to a "Medium" that raced at
-Hard's pace (~34.5s), which felt like a cliff rather than a difficulty curve.
-These averages are measured against a proper `aiControl`-driven player proxy
-(the actual steering logic the game uses), not a simplified stand-in - an
-earlier tuning pass looked fine under a simpler test harness but collapsed
-Easy and Medium into the same pace once measured the real way.
+Real speedway heats don't have lapping - 4 laps is short enough that even the
+last-place finisher is only seconds behind, never a full lap down. Jitter has
+a hard cliff around ~0.5: below it, a missed correction means a bit more
+drift, which makes the next correction bigger and more likely to be missed
+too, and a single bad run can blow out to 50s+ instead of ~34s. All four tiers
+are kept above that cliff and differentiated mainly by threshold/lookahead
+instead, which only varies pace by a couple of seconds - a deliberately tight
+spread (an earlier, wider-spread version routinely had an AI rider finish 30-90%
+of a lap behind when the player finished, i.e. functionally lapped).
 
 Diminishing returns from Hard upward are expected — the AI is approaching the
 same `maxSpeed` ceiling the player has, so there's a physical floor to lap times
@@ -130,6 +131,16 @@ AI also gets one difficulty-independent override: if it's pushed deep onto the
 inward (infield) apron, it steers *right* to peel off, since its normal left-only
 steering would otherwise just drive it further into that fence — a real dead-lock
 that showed up in testing before the override was added.
+
+**Bug note**: `setupRace()` used to bias each AI's target line outward by half its
+starting-gate offset (`aiLine = laneOffset * 0.5`) and shrink lookahead by gate
+index (`- i * 4`), meant to add a bit of natural variety between riders. In
+practice this was a structural bug, not variety: whichever AI landed in the
+outermost gate got pushed toward an outward line *and* given the worst
+lookahead of the three, so it reliably clipped the fence - every single
+isolated test run crashed, not occasionally. That rider could fall most of a
+lap behind through no bad luck at all. Both are now off (`aiLine = 0`, no
+per-gate lookahead penalty).
 
 ### Legends mode
 
@@ -143,7 +154,9 @@ player is Tomasz Gollob.
 finishes, rather than waiting for the AI to complete their own laps - anyone
 still on track at that point is ranked below the finishers by current
 on-track position (`Bike.progress`), not left to keep racing or DNF'd
-arbitrarily.
+arbitrarily. Their result shows exactly how far they got, e.g.
+`DNF (3.9/4 laps)`, computed from that same progress value, rather than a bare
+"DNF" that hides whether they were a few metres behind or barely off the line.
 
 ## Verification approach
 
