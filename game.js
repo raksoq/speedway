@@ -352,10 +352,9 @@ const HEAT_POINTS = [3, 2, 1, 0];
 // a longer, smoother lookahead combined with rarely hesitating is what actually wins races.
 const AI_LEVELS = {
   easy: { thresholdBase: 0.24, thresholdVar: 0.12, lookBase: 45, lookVar: 15, jitterBase: 0.35, jitterVar: 0.15 },
-  medium: { thresholdBase: 0.05, thresholdVar: 0.07, lookBase: 55, lookVar: 25, jitterBase: 0.85, jitterVar: 0.30 },
-  hard: { thresholdBase: 0.04, thresholdVar: 0.05, lookBase: 70, lookVar: 20, jitterBase: 1.1, jitterVar: 0.1 },
-  expert: { thresholdBase: 0.025, thresholdVar: 0.03, lookBase: 90, lookVar: 15, jitterBase: 1.2, jitterVar: 0.05 },
-  champion: { thresholdBase: 0.015, thresholdVar: 0.02, lookBase: 110, lookVar: 10, jitterBase: 1.25, jitterVar: 0.05 },
+  medium: { thresholdBase: 0.16, thresholdVar: 0.10, lookBase: 48, lookVar: 18, jitterBase: 0.45, jitterVar: 0.15 },
+  hard: { thresholdBase: 0.05, thresholdVar: 0.07, lookBase: 55, lookVar: 25, jitterBase: 0.85, jitterVar: 0.30 },
+  expert: { thresholdBase: 0.04, thresholdVar: 0.05, lookBase: 70, lookVar: 20, jitterBase: 1.1, jitterVar: 0.1 },
 };
 let aiDifficulty = "medium";
 

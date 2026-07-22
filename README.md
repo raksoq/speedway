@@ -94,7 +94,7 @@ lands in is randomized each race.
 
 ## Computer riders
 
-Five difficulty presets (`AI_LEVELS`) tune three knobs per AI rider:
+Four difficulty presets (`AI_LEVELS`) tune three knobs per AI rider:
 
 - **threshold** — how much angular error it tolerates before deciding to steer.
   Higher = later, sloppier reactions.
@@ -109,10 +109,13 @@ Five difficulty presets (`AI_LEVELS`) tune three knobs per AI rider:
 | | threshold | lookahead | jitter | ~avg finish (4 laps, headless sim) |
 |---|---|---|---|---|
 | Easy | 0.24-0.36 | 45-60 | 0.35-0.50 | ~48s |
-| Medium | 0.05-0.12 | 55-80 | 0.85-1.15 | ~34.5s |
-| Hard | 0.04-0.09 | 70-90 | 1.1-1.2 | ~33.5s |
-| Expert | 0.025-0.055 | 90-105 | 1.2-1.25 | ~32.75s |
-| Champion | 0.015-0.035 | 110-120 | 1.25-1.3 | ~32.1s |
+| Medium | 0.16-0.26 | 48-66 | 0.45-0.60 | ~40s |
+| Hard | 0.05-0.12 | 55-80 | 0.85-1.15 | ~34s |
+| Expert | 0.04-0.09 | 70-90 | 1.1-1.2 | ~33s |
+
+Medium sits deliberately between Easy and Hard — an earlier version jumped
+straight from Easy (~48s) to a "Medium" that raced at Hard's pace (~34.5s),
+which felt like a cliff rather than a difficulty curve.
 
 Diminishing returns from Hard upward are expected — the AI is approaching the
 same `maxSpeed` ceiling the player has, so there's a physical floor to lap times
