@@ -373,7 +373,7 @@ const GATE_COLORS = ["#e74c3c", "#3d7fe0", "#eeeeee", "#ffd23f"];
 // Optional "Legends mode": race real multi-time world champions instead of generic names.
 const LEGEND_NAMES = ["Ivan Mauger", "Hans Nielsen", "Greg Hancock"];
 const DEFAULT_LEGEND_PLAYER_NAME = "Tomasz Gollob";
-let legendsMode = false;
+let legendsMode = true;
 
 function setupRace() {
   const playerGate = Math.floor(Math.random() * GATE_COLORS.length);
@@ -835,21 +835,42 @@ function drawBike(b) {
   // shadow
   ctx.fillStyle = "rgba(0,0,0,0.25)";
   ctx.beginPath();
-  ctx.ellipse(1, 2, 9, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(1, 2, 11, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // bike body
+  // wheels (front narrower than rear, both viewed edge-on from directly above)
+  ctx.fillStyle = "#161616";
+  ctx.beginPath();
+  ctx.ellipse(-8.5, 0, 2, 3.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(8, 0, 1.7, 2.8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // frame/tank, the main body of the bike - team colour, tapered front to back
   ctx.fillStyle = b.color;
   ctx.beginPath();
-  ctx.moveTo(11, 0);
-  ctx.lineTo(-8, 5);
-  ctx.lineTo(-8, -5);
+  ctx.moveTo(9, 0);
+  ctx.lineTo(3, -2.2);
+  ctx.lineTo(-7, -1.8);
+  ctx.lineTo(-8.5, 0);
+  ctx.lineTo(-7, 1.8);
+  ctx.lineTo(3, 2.2);
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = "#1a1a1a";
-  ctx.fillRect(-9, -2, 4, 4);
-  ctx.fillRect(6, -2, 4, 4);
+  // rider, a small helmet dot leaning off the bike's centerline toward the
+  // outside of the slip angle (the classic speedway "hanging off" posture)
+  const lean = Math.max(-1, Math.min(1, normAngle(b.heading - velAngle) * 2.4));
+  const riderY = lean * 2.6;
+  ctx.fillStyle = "#232323";
+  ctx.beginPath();
+  ctx.ellipse(0, riderY, 3.2, 1.8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = b.color === "#eeeeee" ? "#2a2a2a" : "#f2f2f2";
+  ctx.beginPath();
+  ctx.arc(2.2, riderY, 1.8, 0, Math.PI * 2);
+  ctx.fill();
 
   ctx.restore();
 
