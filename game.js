@@ -333,12 +333,27 @@ const resultsList = document.getElementById("resultsList");
 const recordLine = document.getElementById("recordLine");
 const startBtn = document.getElementById("startBtn");
 const restartBtn = document.getElementById("restartBtn");
+const resetBtn = document.getElementById("resetBtn");
 const steerLeftBtn = document.getElementById("steerLeftBtn");
 const steerRightBtn = document.getElementById("steerRightBtn");
+const diffBtns = document.querySelectorAll(".diffBtn");
 
 const TOTAL_LAPS = 4;
 const RECORD_KEY = "speedway_best_lap";
 const HEAT_POINTS = [3, 2, 1, 0]; // PGE Ekstraliga-style scoring: 3-2-1-0 per heat
+
+// Computer rider difficulty presets. Threshold is how much angular error the AI tolerates
+// before it steers (higher = later, sloppier reactions); jitter is the chance it actually
+// acts on that decision each frame (lower = more hesitation/missed corrections). A shorter
+// lookahead alone doesn't make an AI faster - it reacts to a closer, twitchier target and
+// ends up over-steering (holding the engine-penalized turn input too much), which is slower;
+// a longer, smoother lookahead combined with rarely hesitating is what actually wins races.
+const AI_LEVELS = {
+  easy: { thresholdBase: 0.14, thresholdVar: 0.10, lookBase: 75, lookVar: 25, jitterBase: 0.55, jitterVar: 0.20 },
+  medium: { thresholdBase: 0.05, thresholdVar: 0.07, lookBase: 55, lookVar: 25, jitterBase: 0.85, jitterVar: 0.30 },
+  hard: { thresholdBase: 0.04, thresholdVar: 0.05, lookBase: 70, lookVar: 20, jitterBase: 1.1, jitterVar: 0.1 },
+};
+let aiDifficulty = "medium";
 
 let state = "menu"; // menu | countdown | racing | finished
 let bikes = [];
@@ -358,6 +373,7 @@ const COLORS = [
 
 function setupRace() {
   bikes = COLORS.map((c, i) => new Bike(c.color, c.name, i === 0));
+  const lvl = AI_LEVELS[aiDifficulty] || AI_LEVELS.medium;
   // stagger starting positions across the track width and slightly back from the line
   bikes.forEach((b, i) => {
     const laneOffset = -TRACK.width * 0.34 + i * (TRACK.width * 0.22);
@@ -372,9 +388,9 @@ function setupRace() {
     b._lastS = s;
     if (!b.isPlayer) {
       b.aiLine = laneOffset * 0.5;
-      b.aiThreshold = 0.05 + Math.random() * 0.07;
-      b.aiLook = 55 + Math.random() * 25 - i * 4;
-      b.aiSkillJitter = 0.85 + Math.random() * 0.3;
+      b.aiThreshold = lvl.thresholdBase + Math.random() * lvl.thresholdVar;
+      b.aiLook = lvl.lookBase + Math.random() * lvl.lookVar - i * 4;
+      b.aiSkillJitter = lvl.jitterBase + Math.random() * lvl.jitterVar;
     }
   });
   playerBike = bikes[0];
@@ -461,6 +477,13 @@ bindHold(steerRightBtn,
 
 startBtn.addEventListener("click", startCountdown);
 restartBtn.addEventListener("click", startCountdown);
+resetBtn.addEventListener("click", returnToMenu);
+diffBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    aiDifficulty = btn.dataset.level;
+    diffBtns.forEach((b) => b.classList.toggle("active", b === btn));
+  });
+});
 
 function returnToMenu() {
   state = "menu";
@@ -652,20 +675,6 @@ function drawInfieldStripes(innerPts) {
   ctx.restore();
 }
 
-function drawTrackLabel() {
-  ctx.save();
-  ctx.translate(TRACK.cx, TRACK.cy);
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
-  ctx.font = "700 22px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("TOR WROCŁAW", 0, -8);
-  ctx.font = "600 12px sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.32)";
-  ctx.fillText("SPEEDWAY", 0, 14);
-  ctx.restore();
-}
-
 function drawFloodlightPylon(x, y) {
   ctx.strokeStyle = "#2a2a2a";
   ctx.lineWidth = 4;
@@ -714,7 +723,6 @@ function drawTrack() {
   drawInfieldTower();
 
   drawFloodlights();
-  drawTrackLabel();
 
   // start/finish line, regulation position: middle of the straight
   const p = centerlineAt(START_S);

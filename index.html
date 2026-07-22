@@ -13,12 +13,13 @@
     <div id="hudPos">P1</div>
     <div id="hudLap">Lap 1 / 4</div>
     <div id="hudSpeed">0 km/h</div>
+    <button id="resetBtn">RESET</button>
   </div>
 
   <div id="overlay">
     <div id="menuScreen" class="panel">
       <h1>SPEEDWAY</h1>
-      <p class="sub">Tor Wrocław. Prefers left.</p>
+      <p class="sub">Prefers left.</p>
       <ul class="rules">
         <li><b>&larr; Left</b> / <b>&rarr; Right</b> arrow keys (or A/D, or the on-screen buttons) to steer.</li>
         <li>The bike always drives forward &mdash; there is no throttle or brake.</li>
@@ -27,6 +28,14 @@
         <li>Hit the fence beyond the apron and you'll be stopped dead &mdash; steer back onto the track to get going again.</li>
         <li>4 laps, 4 riders, 3-2-1-0 scoring. Beat the field.</li>
       </ul>
+      <div class="difficulty">
+        <span class="difficultyLabel">Computer riders</span>
+        <div class="difficultyOptions">
+          <button class="diffBtn" data-level="easy">EASY</button>
+          <button class="diffBtn active" data-level="medium">MEDIUM</button>
+          <button class="diffBtn" data-level="hard">HARD</button>
+        </div>
+      </div>
       <button id="startBtn">START RACE</button>
     </div>
 
