@@ -132,20 +132,29 @@ button:active { transform: scale(0.96); }
   margin-bottom: 20px;
 }
 
-#steerBtn {
+#steerControls {
   position: absolute;
   bottom: 22px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 16px 40px;
+  display: flex;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.steerBtn {
+  pointer-events: auto;
+  padding: 16px 34px;
   font-size: 14px;
   border-radius: 30px;
-  background: rgba(255, 93, 59, 0.85);
   color: #1a1005;
   touch-action: none;
 }
 
-#steerBtn.pressed {
+#steerLeftBtn { background: rgba(255, 93, 59, 0.85); }
+#steerRightBtn { background: rgba(111, 211, 255, 0.75); }
+
+.steerBtn.pressed {
   background: #fff;
-  transform: translateX(-50%) scale(0.95);
+  transform: scale(0.95);
 }

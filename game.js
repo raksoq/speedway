@@ -3,15 +3,17 @@
 // ---------- Track ----------
 // Stadium oval: two straights + two semicircle turns, traversed counter-clockwise
 // (bottom straight L->R, right-end turn, top straight R->L, left-end turn),
-// matching real speedway where every corner is a left turn.
+// matching real speedway where every corner is a left turn. Corners flare wider
+// than the straights (real tracks: ~12m straight -> ~15-16m at the apex), and a
+// soft dirt apron sits between the racing surface and the outer safety fence.
 const TRACK = {
   cx: 550, cy: 325,
   halfStraight: 260,
   radius: 150,
-  width: 100,
+  width: 100,       // straight-section width
+  cornerExtra: 34,  // extra full-width bulge at corner apex
+  apron: 20,        // loose-surface verge between the racing line and the fence
 };
-TRACK.innerRadius = TRACK.radius - TRACK.width / 2;
-TRACK.outerRadius = TRACK.radius + TRACK.width / 2;
 TRACK.lenStraight = TRACK.halfStraight * 2;
 TRACK.lenArc = Math.PI * TRACK.radius;
 TRACK.totalLength = TRACK.lenStraight * 2 + TRACK.lenArc * 2;
@@ -60,6 +62,21 @@ function centerlineAt(s) {
   }
 }
 
+// 0 on the straights, rising smoothly to 1 at each corner apex.
+function arcWidenFactor(s) {
+  const t = TRACK;
+  const segA = t.lenStraight, segB = segA + t.lenArc, segC = segB + t.lenStraight, segD = segC + t.lenArc;
+  let a = null;
+  if (s >= segA && s < segB) a = (s - segA) / t.lenArc;
+  else if (s >= segC && s < segD) a = (s - segC) / t.lenArc;
+  if (a === null) return 0;
+  return Math.sin(a * Math.PI);
+}
+
+function trackHalfWidthAt(s) {
+  return (TRACK.width + TRACK.cornerExtra * arcWidenFactor(s)) / 2;
+}
+
 // Finds the arc-length s of the centerline point closest to (x,y), searching near a hint.
 function projectToTrack(x, y, hintS) {
   const t = TRACK;
@@ -80,27 +97,44 @@ function projectToTrack(x, y, hintS) {
   return ((bestS % t.totalLength) + t.totalLength) % t.totalLength;
 }
 
-// Signed lateral offset of (x,y) from the centerline at arc-length s (+ = to the right of travel).
+// Signed lateral offset of (x,y) from the centerline at arc-length s (+ = outward, away from infield).
 function lateralOffset(x, y, s) {
   const p = centerlineAt(s);
   const nx = -Math.sin(p.angle), ny = Math.cos(p.angle);
   return (x - p.x) * nx + (y - p.y) * ny;
 }
 
-const START_S = 0; // start/finish line at beginning of bottom straight
+// Points offset from the centerline by trackHalfWidthAt(s)+extra, sign +1 = outer, -1 = inner.
+function boundaryPoints(sign, extra, steps) {
+  steps = steps || 240;
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const s = (i / steps) * TRACK.totalLength;
+    const p = centerlineAt(s);
+    const hw = trackHalfWidthAt(s) + extra;
+    const nx = -Math.sin(p.angle), ny = Math.cos(p.angle);
+    pts.push({ x: p.x + sign * hw * nx, y: p.y + sign * hw * ny });
+  }
+  return pts;
+}
+
+const START_S = TRACK.lenStraight / 2; // regulation start gate: middle of the straight
 
 // ---------- Bike ----------
 const PHYS = {
-  maxSpeed: 250,          // px/s
-  enginePower: 230,       // px/s^2 forward drive
-  turnEnginePenalty: 0.5, // engine drive multiplier while steering (less drive, more slide)
-  turnRate: 2.7,          // rad/s heading rotation while steering left
-  gripStraight: 6.0,      // 1/s blend rate of velocity->heading when not steering
-  gripTurning: 1.9,       // 1/s blend rate while steering (lower = more drift)
-  slipLossFactor: 1.6,    // speed lost per second per radian of slip, scaled by speed
-  drag: 0.35,             // linear drag coefficient
-  offTrackDrag: 2.6,      // extra drag when off the racing surface
-  offTrackMax: 0.55,      // speed cap multiplier when deep off track
+  maxSpeed: 250,               // px/s
+  enginePower: 230,            // px/s^2 forward drive
+  turnRateLeft: 2.7,           // rad/s heading rotation while steering left
+  turnRateRight: 1.7,          // right turns are weaker - the bike is set up for left
+  turnEnginePenaltyLeft: 0.5,  // engine drive multiplier while steering left
+  turnEnginePenaltyRight: 0.38,// steering right costs more drive - less efficient
+  gripStraight: 6.0,           // 1/s blend rate of velocity->heading when not steering
+  gripTurningLeft: 1.9,        // 1/s blend rate while steering left (lower = more drift)
+  gripTurningRight: 1.3,       // steering right is slidier / less stable
+  slipLossFactor: 1.6,         // speed lost per second per radian of slip, scaled by speed
+  drag: 0.35,                  // linear drag coefficient
+  offTrackDrag: 2.6,           // extra drag on the loose apron surface
+  offTrackMax: 0.55,           // speed cap multiplier at the edge of the apron
 };
 
 class Bike {
@@ -110,7 +144,7 @@ class Bike {
     this.isPlayer = isPlayer;
     const start = centerlineAt(START_S);
     this.x = start.x;
-    this.y = start.y - TRACK.width * 0.28; // lane offset, set by caller
+    this.y = start.y;
     this.heading = start.angle;
     this.vx = 0; this.vy = 0;
     this.trackS = START_S;
@@ -119,19 +153,23 @@ class Bike {
     this.finishTime = null;
     this.raceTime = 0;
     this.trail = [];
-    this.steering = false;
+    this.steerDir = 0;
+    this.offTrack = false;
+    this.crashed = false;
     this._lastS = START_S;
     this._crossOffset = 0; // cumulative distance for lap fraction display
   }
 
   get speed() { return Math.hypot(this.vx, this.vy); }
 
-  update(dt, steering, elapsed) {
-    this.steering = steering;
-    if (steering) this.heading -= PHYS.turnRate * dt;
+  update(dt, steerDir, elapsed) {
+    this.steerDir = steerDir; // -1 left, 0 none, +1 right
+    if (steerDir < 0) this.heading -= PHYS.turnRateLeft * dt;
+    else if (steerDir > 0) this.heading += PHYS.turnRateRight * dt;
 
-    const speedBefore = this.speed;
-    const drivePenalty = steering ? PHYS.turnEnginePenalty : 1;
+    const drivePenalty = steerDir < 0 ? PHYS.turnEnginePenaltyLeft
+      : steerDir > 0 ? PHYS.turnEnginePenaltyRight
+      : 1;
     this.vx += Math.cos(this.heading) * PHYS.enginePower * drivePenalty * dt;
     this.vy += Math.sin(this.heading) * PHYS.enginePower * drivePenalty * dt;
 
@@ -139,7 +177,9 @@ class Bike {
     if (speed > 0.001) {
       const velAngle = Math.atan2(this.vy, this.vx);
       const diff = normAngle(this.heading - velAngle);
-      const grip = steering ? PHYS.gripTurning : PHYS.gripStraight;
+      const grip = steerDir < 0 ? PHYS.gripTurningLeft
+        : steerDir > 0 ? PHYS.gripTurningRight
+        : PHYS.gripStraight;
       const blend = Math.min(1, grip * dt);
       const newVelAngle = velAngle + diff * blend;
 
@@ -160,22 +200,47 @@ class Bike {
       this.vx *= scale; this.vy *= scale;
     }
 
-    // off-track handling
+    // off-track / fence handling: a loose apron slows you down, the fence beyond it stops you dead
     this.trackS = projectToTrack(this.x, this.y, this.trackS);
+    const p = centerlineAt(this.trackS);
+    const halfW = trackHalfWidthAt(this.trackS);
     const offset = lateralOffset(this.x, this.y, this.trackS);
-    const halfW = TRACK.width / 2;
     const overshoot = Math.max(0, Math.abs(offset) - halfW);
     this.offTrack = overshoot > 0;
+    const wasCrashed = this.crashed;
+    this.crashed = false;
+
     if (overshoot > 0) {
-      const t = Math.min(1, overshoot / (halfW * 0.8));
-      speed = this.speed;
-      const cap = PHYS.maxSpeed * (1 - t * (1 - PHYS.offTrackMax));
-      const extraDrag = PHYS.offTrackDrag * t * dt;
-      let ns = Math.max(0, speed - speed * extraDrag);
-      if (ns > cap) ns = cap;
-      if (speed > 0) {
-        const scale = ns / speed;
-        this.vx *= scale; this.vy *= scale;
+      if (overshoot >= TRACK.apron) {
+        this.crashed = true;
+        const nx = -Math.sin(p.angle), ny = Math.cos(p.angle);
+        const outwardSign = Math.sign(offset);
+        if (!wasCrashed) {
+          // first impact: hard stop
+          this.vx = 0; this.vy = 0;
+        } else {
+          // already pinned: only cancel the component still pressing into the fence,
+          // so steering back onto the track can actually build escape velocity
+          const vNormal = this.vx * nx + this.vy * ny;
+          if (vNormal * outwardSign > 0) {
+            this.vx -= vNormal * nx;
+            this.vy -= vNormal * ny;
+          }
+        }
+        const clampOffset = outwardSign * (halfW + TRACK.apron);
+        this.x = p.x + nx * clampOffset;
+        this.y = p.y + ny * clampOffset;
+      } else {
+        const frac = overshoot / TRACK.apron;
+        const spd = this.speed;
+        const cap = PHYS.maxSpeed * (1 - frac * (1 - PHYS.offTrackMax));
+        const extraDrag = PHYS.offTrackDrag * frac * dt;
+        let ns = Math.max(0, spd - spd * extraDrag);
+        if (ns > cap) ns = cap;
+        if (spd > 0) {
+          const scale = ns / spd;
+          this.vx *= scale; this.vy *= scale;
+        }
       }
     }
 
@@ -213,16 +278,28 @@ class Bike {
 }
 
 // ---------- AI ----------
+// AI only ever steers left (matching a real rider's preferred, efficient direction on this oval).
 function aiSteer(bike, lookAheadBase) {
   const look = lookAheadBase + bike.speed * 0.38;
   const targetS = bike.trackS + look;
-  const target = centerlineAt(targetS + (bike.aiLineOffset || 0) * 0);
+  const target = centerlineAt(targetS);
   const tx = target.x + Math.sin(target.angle) * (bike.aiLine || 0);
   const ty = target.y - Math.cos(target.angle) * (bike.aiLine || 0);
 
   const toTargetAngle = Math.atan2(ty - bike.y, tx - bike.x);
   const diff = normAngle(toTargetAngle - bike.heading);
   return diff < -bike.aiThreshold;
+}
+
+// Full AI steering decision: mostly left-only like a real rider, but if pushed deep onto the
+// inward (infield) apron, left steering would only drive it further into that fence - so it
+// briefly steers right to peel back off, the one case where the weak side is the correct one.
+function aiControl(bike) {
+  const halfW = trackHalfWidthAt(bike.trackS);
+  const offset = lateralOffset(bike.x, bike.y, bike.trackS);
+  if (offset < -(halfW + TRACK.apron * 0.5)) return 1;
+  const wantLeft = aiSteer(bike, bike.aiLook || 60) && Math.random() < (bike.aiSkillJitter || 1);
+  return wantLeft ? -1 : 0;
 }
 
 // ---------- Game ----------
@@ -241,10 +318,12 @@ const resultsList = document.getElementById("resultsList");
 const recordLine = document.getElementById("recordLine");
 const startBtn = document.getElementById("startBtn");
 const restartBtn = document.getElementById("restartBtn");
-const steerBtn = document.getElementById("steerBtn");
+const steerLeftBtn = document.getElementById("steerLeftBtn");
+const steerRightBtn = document.getElementById("steerRightBtn");
 
 const TOTAL_LAPS = 4;
 const RECORD_KEY = "speedway_best_lap";
+const HEAT_POINTS = [3, 2, 1, 0]; // PGE Ekstraliga-style scoring: 3-2-1-0 per heat
 
 let state = "menu"; // menu | countdown | racing | finished
 let bikes = [];
@@ -252,6 +331,7 @@ let playerBike = null;
 let raceElapsed = 0;
 let countdownT = 0;
 let inputLeft = false;
+let inputRight = false;
 let bestLapThisRace = Infinity;
 
 const COLORS = [
@@ -262,10 +342,7 @@ const COLORS = [
 ];
 
 function setupRace() {
-  bikes = COLORS.map((c, i) => {
-    const b = new Bike(c.color, c.name, i === 0);
-    return b;
-  });
+  bikes = COLORS.map((c, i) => new Bike(c.color, c.name, i === 0));
   // stagger starting positions across the track width and slightly back from the line
   bikes.forEach((b, i) => {
     const laneOffset = -TRACK.width * 0.34 + i * (TRACK.width * 0.22);
@@ -309,10 +386,11 @@ function finishRace() {
     return b.progress - a.progress;
   });
   resultsList.innerHTML = "";
-  order.forEach((b) => {
+  order.forEach((b, i) => {
     const li = document.createElement("li");
     const t = b.finished ? formatTime(b.finishTime) : "DNF";
-    li.textContent = `${b.name} — ${t}`;
+    const pts = b.finished ? HEAT_POINTS[i] : 0;
+    li.textContent = `${i + 1}. ${b.name} — ${pts} pkt (${t})`;
     if (b.isPlayer) li.classList.add("you");
     resultsList.appendChild(li);
   });
@@ -343,11 +421,13 @@ function formatTime(t) {
 
 // ---------- Input ----------
 window.addEventListener("keydown", (e) => {
-  if (e.code === "Space") { inputLeft = true; e.preventDefault(); }
+  if (e.code === "ArrowLeft" || e.code === "KeyA" || e.code === "Space") { inputLeft = true; e.preventDefault(); }
+  if (e.code === "ArrowRight" || e.code === "KeyD") { inputRight = true; e.preventDefault(); }
   if (e.code === "Escape") { returnToMenu(); }
 });
 window.addEventListener("keyup", (e) => {
-  if (e.code === "Space") { inputLeft = false; }
+  if (e.code === "ArrowLeft" || e.code === "KeyA" || e.code === "Space") { inputLeft = false; }
+  if (e.code === "ArrowRight" || e.code === "KeyD") { inputRight = false; }
 });
 function bindHold(el, on, off) {
   el.addEventListener("mousedown", (e) => { on(); e.preventDefault(); });
@@ -355,9 +435,13 @@ function bindHold(el, on, off) {
   window.addEventListener("mouseup", off);
   window.addEventListener("touchend", off);
 }
-bindHold(steerBtn,
-  () => { inputLeft = true; steerBtn.classList.add("pressed"); },
-  () => { inputLeft = false; steerBtn.classList.remove("pressed"); }
+bindHold(steerLeftBtn,
+  () => { inputLeft = true; steerLeftBtn.classList.add("pressed"); },
+  () => { inputLeft = false; steerLeftBtn.classList.remove("pressed"); }
+);
+bindHold(steerRightBtn,
+  () => { inputRight = true; steerRightBtn.classList.add("pressed"); },
+  () => { inputRight = false; steerRightBtn.classList.remove("pressed"); }
 );
 
 startBtn.addEventListener("click", startCountdown);
@@ -386,12 +470,13 @@ function frame(now) {
     }
   } else if (state === "racing") {
     raceElapsed += dt;
-    let prevPlayerLap = playerBike.lap;
     for (const b of bikes) {
       if (b.finished) continue;
       const prevLap = b.lap;
-      const steering = b.isPlayer ? inputLeft : aiSteer(b, b.aiLook || 60) && Math.random() < (b.aiSkillJitter || 1);
-      b.update(dt, steering, raceElapsed);
+      const steerDir = b.isPlayer
+        ? (inputLeft ? -1 : inputRight ? 1 : 0)
+        : aiControl(b);
+      b.update(dt, steerDir, raceElapsed);
       if (b.lap > prevLap && prevLap >= 0) {
         const lapTime = b._lapStartT !== undefined ? raceElapsed - b._lapStartT : null;
         if (lapTime && b.isPlayer) bestLapThisRace = Math.min(bestLapThisRace, lapTime);
@@ -421,52 +506,127 @@ function updateHud() {
 }
 
 // ---------- Render ----------
-function drawTrack() {
-  const t = TRACK;
-  ctx.fillStyle = "#6b8e4e";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // outer dirt surface
-  drawStadium(t.outerRadius, "#b98a5a");
-  // inner infield (grass)
-  drawStadium(t.innerRadius, "#5a8046");
-
-  // boundary lines
-  strokeStadium(t.outerRadius, "#e9dcc4", 3);
-  strokeStadium(t.innerRadius, "#e9dcc4", 3);
-
-  // start/finish line
-  const p = centerlineAt(START_S);
-  const nx = -Math.sin(p.angle), ny = Math.cos(p.angle);
-  const halfW = t.width / 2;
-  drawChecker(p.x - nx * halfW, p.y - ny * halfW, p.x + nx * halfW, p.y + ny * halfW);
-}
-
-function drawStadium(r, color) {
-  const t = TRACK;
+function fillPolygon(pts, color) {
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.moveTo(t.cx - t.halfStraight, t.cy - r);
-  ctx.lineTo(t.cx + t.halfStraight, t.cy - r);
-  ctx.arc(t.cx + t.halfStraight, t.cy, r, -Math.PI / 2, Math.PI / 2, false);
-  ctx.lineTo(t.cx - t.halfStraight, t.cy + r);
-  ctx.arc(t.cx - t.halfStraight, t.cy, r, Math.PI / 2, Math.PI * 1.5, false);
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
   ctx.closePath();
   ctx.fill();
 }
 
-function strokeStadium(r, color, width) {
-  const t = TRACK;
+function strokePolygon(pts, color, width, dash) {
   ctx.strokeStyle = color;
   ctx.lineWidth = width;
+  ctx.setLineDash(dash || []);
   ctx.beginPath();
-  ctx.moveTo(t.cx - t.halfStraight, t.cy - r);
-  ctx.lineTo(t.cx + t.halfStraight, t.cy - r);
-  ctx.arc(t.cx + t.halfStraight, t.cy, r, -Math.PI / 2, Math.PI / 2, false);
-  ctx.lineTo(t.cx - t.halfStraight, t.cy + r);
-  ctx.arc(t.cx - t.halfStraight, t.cy, r, Math.PI / 2, Math.PI * 1.5, false);
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
   ctx.closePath();
   ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawGrandstand() {
+  const steps = 120;
+  const gap = 14, standDepth = 46;
+  const innerPts = boundaryPoints(1, TRACK.apron + gap, steps);
+  const outerPts = boundaryPoints(1, TRACK.apron + gap + standDepth, steps);
+  const palette = ["#e2a83f", "#eab54c", "#d99433", "#f0c169"];
+  const blockSize = 5;
+  for (let i = 0; i < steps; i++) {
+    const a = innerPts[i], b = innerPts[i + 1], c = outerPts[i + 1], d = outerPts[i];
+    ctx.fillStyle = palette[Math.floor(i / blockSize) % palette.length];
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y);
+    ctx.closePath();
+    ctx.fill();
+  }
+  strokePolygon(outerPts, "rgba(255,255,255,0.28)", 4);
+}
+
+function drawInfieldStripes(innerPts) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(innerPts[0].x, innerPts[0].y);
+  for (let i = 1; i < innerPts.length; i++) ctx.lineTo(innerPts[i].x, innerPts[i].y);
+  ctx.closePath();
+  ctx.clip();
+  const stripeW = 24;
+  ctx.fillStyle = "rgba(0,0,0,0.07)";
+  const left = TRACK.cx - TRACK.halfStraight - TRACK.radius;
+  const right = TRACK.cx + TRACK.halfStraight + TRACK.radius;
+  for (let x = left; x < right; x += stripeW * 2) {
+    ctx.fillRect(x, TRACK.cy - TRACK.radius - 10, stripeW, TRACK.radius * 2 + 20);
+  }
+  ctx.restore();
+}
+
+function drawTrackLabel() {
+  ctx.save();
+  ctx.translate(TRACK.cx, TRACK.cy);
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.font = "700 22px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("TOR WROCŁAW", 0, -8);
+  ctx.font = "600 12px sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.32)";
+  ctx.fillText("SPEEDWAY", 0, 14);
+  ctx.restore();
+}
+
+function drawFloodlightPylon(x, y) {
+  ctx.strokeStyle = "#2a2a2a";
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 34); ctx.stroke();
+  ctx.fillStyle = "#d8d8d8";
+  ctx.fillRect(x - 10, y - 44, 20, 10);
+  ctx.fillStyle = "rgba(255, 250, 200, 0.55)";
+  ctx.beginPath(); ctx.arc(x, y - 39, 16, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawFloodlights() {
+  const dx = TRACK.halfStraight + TRACK.radius * 0.55;
+  const dy = TRACK.radius * 1.55;
+  const positions = [
+    { x: TRACK.cx - dx, y: TRACK.cy - dy },
+    { x: TRACK.cx + dx, y: TRACK.cy - dy },
+    { x: TRACK.cx - dx, y: TRACK.cy + dy },
+    { x: TRACK.cx + dx, y: TRACK.cy + dy },
+  ];
+  for (const p of positions) drawFloodlightPylon(p.x, p.y);
+}
+
+function drawTrack() {
+  ctx.fillStyle = "#3f5c34";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawGrandstand();
+
+  const outerPts = boundaryPoints(1, 0);
+  const innerPts = boundaryPoints(-1, 0);
+  const fenceOuterPts = boundaryPoints(1, TRACK.apron);
+  const fenceInnerPts = boundaryPoints(-1, TRACK.apron);
+
+  fillPolygon(fenceOuterPts, "#a5754a"); // loose apron
+  fillPolygon(outerPts, "#8b5a3c");      // racing groove (shale)
+  fillPolygon(innerPts, "#4f7a3d");      // infield grass
+  drawInfieldStripes(innerPts);
+
+  strokePolygon(outerPts, "#e9dcc4", 3);
+  strokePolygon(innerPts, "#e9dcc4", 3);
+  strokePolygon(fenceOuterPts, "#d1495b", 2.5, [7, 6]);
+  strokePolygon(fenceInnerPts, "#d1495b", 2.5, [7, 6]);
+
+  drawFloodlights();
+  drawTrackLabel();
+
+  // start/finish line, regulation position: middle of the straight
+  const p = centerlineAt(START_S);
+  const nx = -Math.sin(p.angle), ny = Math.cos(p.angle);
+  const halfW = trackHalfWidthAt(START_S);
+  drawChecker(p.x - nx * halfW, p.y - ny * halfW, p.x + nx * halfW, p.y + ny * halfW);
 }
 
 function drawChecker(x1, y1, x2, y2) {
@@ -491,6 +651,11 @@ function drawBike(b) {
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+
+  if (b.crashed) {
+    ctx.fillStyle = "rgba(255,80,60,0.5)";
+    ctx.beginPath(); ctx.arc(b.x, b.y, 14, 0, Math.PI * 2); ctx.fill();
+  }
 
   const velAngle = b.speed > 5 ? Math.atan2(b.vy, b.vx) : b.heading;
   const drawAngle = velAngle + normAngle(b.heading - velAngle) * 0.35; // slight lean toward heading
