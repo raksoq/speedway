@@ -353,8 +353,8 @@ const HEAT_POINTS = [3, 2, 1, 0];
 const AI_LEVELS = {
   easy: { thresholdBase: 0.24, thresholdVar: 0.12, lookBase: 45, lookVar: 15, jitterBase: 0.35, jitterVar: 0.15 },
   medium: { thresholdBase: 0.16, thresholdVar: 0.10, lookBase: 48, lookVar: 18, jitterBase: 0.45, jitterVar: 0.15 },
-  hard: { thresholdBase: 0.05, thresholdVar: 0.07, lookBase: 55, lookVar: 25, jitterBase: 0.85, jitterVar: 0.30 },
-  expert: { thresholdBase: 0.04, thresholdVar: 0.05, lookBase: 70, lookVar: 20, jitterBase: 1.1, jitterVar: 0.1 },
+  hard: { thresholdBase: 0.135, thresholdVar: 0.09, lookBase: 50, lookVar: 20, jitterBase: 0.58, jitterVar: 0.19 },
+  expert: { thresholdBase: 0.05, thresholdVar: 0.07, lookBase: 55, lookVar: 25, jitterBase: 0.85, jitterVar: 0.30 },
 };
 let aiDifficulty = "medium";
 

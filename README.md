@@ -110,12 +110,13 @@ Four difficulty presets (`AI_LEVELS`) tune three knobs per AI rider:
 |---|---|---|---|---|
 | Easy | 0.24-0.36 | 45-60 | 0.35-0.50 | ~48s |
 | Medium | 0.16-0.26 | 48-66 | 0.45-0.60 | ~40s |
-| Hard | 0.05-0.12 | 55-80 | 0.85-1.15 | ~34s |
-| Expert | 0.04-0.09 | 70-90 | 1.1-1.2 | ~33s |
+| Hard | 0.135-0.225 | 50-70 | 0.58-0.77 | ~35.5s |
+| Expert | 0.05-0.12 | 55-80 | 0.85-1.15 | ~34s |
 
-Medium sits deliberately between Easy and Hard — an earlier version jumped
-straight from Easy (~48s) to a "Medium" that raced at Hard's pace (~34.5s),
-which felt like a cliff rather than a difficulty curve.
+Easy/Medium/Hard/Expert are spaced out deliberately, each a step tuned partway
+between its neighbors rather than reusing an old tier's numbers wholesale - an
+earlier version jumped straight from Easy (~48s) to a "Medium" that raced at
+Hard's pace (~34.5s), which felt like a cliff rather than a difficulty curve.
 
 Diminishing returns from Hard upward are expected — the AI is approaching the
 same `maxSpeed` ceiling the player has, so there's a physical floor to lap times
