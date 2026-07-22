@@ -532,8 +532,8 @@ function drawGrandstand() {
   const gap = 14, standDepth = 46;
   const innerPts = boundaryPoints(1, TRACK.apron + gap, steps);
   const outerPts = boundaryPoints(1, TRACK.apron + gap + standDepth, steps);
-  const palette = ["#e2a83f", "#eab54c", "#d99433", "#f0c169"];
-  const blockSize = 5;
+  const palette = ["#e2a83f", "#eab54c", "#d99433", "#f0c169", "#c96b3f", "#eab54c", "#e2a83f", "#f4d9a0"];
+  const blockSize = 4;
   for (let i = 0; i < steps; i++) {
     const a = innerPts[i], b = innerPts[i + 1], c = outerPts[i + 1], d = outerPts[i];
     ctx.fillStyle = palette[Math.floor(i / blockSize) % palette.length];
@@ -542,7 +542,82 @@ function drawGrandstand() {
     ctx.closePath();
     ctx.fill();
   }
+  // shade cast by the roof canopy over the back rows of seating
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  fillPolygon(outerPts, "#1a1a1a");
+  fillPolygon(boundaryPoints(1, TRACK.apron + gap + standDepth * 0.4, steps), "#3f5c34"); // punch the shade back out over the front rows
+  ctx.restore();
   strokePolygon(outerPts, "rgba(255,255,255,0.28)", 4);
+}
+
+// Wrocław's Stadion Olimpijski is known for its white tensile-fabric "petal" roof
+// canopy over the seating bowl - approximated here as a scalloped white ring.
+function drawRoofCanopy() {
+  const steps = 200;
+  const standOuterExtra = TRACK.apron + 14 + 46;
+  const scallopCount = 44;
+  const scallopDepth = 18;
+  const innerPts = boundaryPoints(1, standOuterExtra, steps);
+  const outerPts = [];
+  for (let i = 0; i <= steps; i++) {
+    const s = (i / steps) * TRACK.totalLength;
+    const p = centerlineAt(s);
+    const wave = (Math.sin((i / steps) * Math.PI * 2 * scallopCount) + 1) / 2; // 0..1
+    const hw = trackHalfWidthAt(s) + standOuterExtra + 8 + wave * scallopDepth;
+    const nx = -Math.sin(p.angle), ny = Math.cos(p.angle);
+    outerPts.push({ x: p.x + nx * hw, y: p.y + ny * hw });
+  }
+
+  ctx.save();
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = "#f4f6f8";
+  ctx.beginPath();
+  ctx.moveTo(innerPts[0].x, innerPts[0].y);
+  for (let i = 1; i < innerPts.length; i++) ctx.lineTo(innerPts[i].x, innerPts[i].y);
+  for (let i = outerPts.length - 1; i >= 0; i--) ctx.lineTo(outerPts[i].x, outerPts[i].y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // radial fold lines suggesting fabric panels between support pillars
+  ctx.strokeStyle = "rgba(150,165,180,0.55)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < outerPts.length; i += 2) {
+    ctx.beginPath();
+    ctx.moveTo(innerPts[i].x, innerPts[i].y);
+    ctx.lineTo(outerPts[i].x, outerPts[i].y);
+    ctx.stroke();
+  }
+  strokePolygon(innerPts, "rgba(120,135,150,0.5)", 1.5);
+}
+
+function drawAdBoards() {
+  const boardDepth = 5;
+  const innerEdge = boundaryPoints(1, TRACK.apron - boardDepth);
+  const outerEdge = boundaryPoints(1, TRACK.apron);
+  const colors = ["#1f5fa8", "#1f5fa8", "#1f5fa8", "#e8e8e8"];
+  const block = 6;
+  for (let i = 0; i < innerEdge.length - 1; i++) {
+    const a = innerEdge[i], b = innerEdge[i + 1], c = outerEdge[i + 1], d = outerEdge[i];
+    ctx.fillStyle = colors[Math.floor(i / block) % colors.length];
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function drawInfieldTower() {
+  const x = TRACK.cx + TRACK.radius * 0.85;
+  const y = TRACK.cy - TRACK.radius * 0.25;
+  ctx.fillStyle = "#3a3a3a";
+  ctx.fillRect(x - 3, y - 42, 6, 42);
+  ctx.fillRect(x - 16, y - 8, 32, 3);
+  ctx.fillStyle = "#565656";
+  ctx.fillRect(x - 15, y - 60, 30, 20);
+  ctx.fillStyle = "#8ec9e0";
+  ctx.fillRect(x - 12, y - 57, 24, 12);
 }
 
 function drawInfieldStripes(innerPts) {
@@ -603,6 +678,7 @@ function drawTrack() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   drawGrandstand();
+  drawRoofCanopy();
 
   const outerPts = boundaryPoints(1, 0);
   const innerPts = boundaryPoints(-1, 0);
@@ -613,11 +689,14 @@ function drawTrack() {
   fillPolygon(outerPts, "#8b5a3c");      // racing groove (shale)
   fillPolygon(innerPts, "#4f7a3d");      // infield grass
   drawInfieldStripes(innerPts);
+  drawAdBoards();
 
   strokePolygon(outerPts, "#e9dcc4", 3);
   strokePolygon(innerPts, "#e9dcc4", 3);
   strokePolygon(fenceOuterPts, "#d1495b", 2.5, [7, 6]);
   strokePolygon(fenceInnerPts, "#d1495b", 2.5, [7, 6]);
+
+  drawInfieldTower();
 
   drawFloodlights();
   drawTrackLabel();
