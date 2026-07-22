@@ -845,22 +845,37 @@ function drawBike(b) {
   // wheels (front narrower than rear, both viewed edge-on from directly above)
   ctx.fillStyle = "#161616";
   ctx.beginPath();
-  ctx.ellipse(-8.5, 0, 2, 3.4, 0, 0, Math.PI * 2);
+  ctx.ellipse(-8.5, 0, 1.8, 3.2, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(8, 0, 1.7, 2.8, 0, 0, Math.PI * 2);
+  ctx.ellipse(8, 0, 1.5, 2.6, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // frame/tank, the main body of the bike - team colour, tapered front to back
+  // frame/tank, a narrow spine down the centerline - team colour
   ctx.fillStyle = b.color;
   ctx.beginPath();
-  ctx.moveTo(9, 0);
-  ctx.lineTo(3, -2.2);
-  ctx.lineTo(-7, -1.8);
-  ctx.lineTo(-8.5, 0);
-  ctx.lineTo(-7, 1.8);
-  ctx.lineTo(3, 2.2);
+  ctx.moveTo(7, 0);
+  ctx.lineTo(3, -1.1);
+  ctx.lineTo(-6, -0.9);
+  ctx.lineTo(-8, 0);
+  ctx.lineTo(-6, 0.9);
+  ctx.lineTo(3, 1.1);
   ctx.closePath();
+  ctx.fill();
+
+  // handlebar, sticking out past the front wheel
+  ctx.strokeStyle = "#161616";
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.moveTo(6, -3.6);
+  ctx.lineTo(6, 3.6);
+  ctx.stroke();
+  ctx.fillStyle = "#161616";
+  ctx.beginPath();
+  ctx.arc(6, -3.6, 0.9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(6, 3.6, 0.9, 0, Math.PI * 2);
   ctx.fill();
 
   // rider, a small helmet dot leaning off the bike's centerline toward the
