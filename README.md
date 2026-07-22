@@ -87,15 +87,14 @@ fixed-radius arcs, since the width itself changes continuously around the lap.
 
 The start/finish line sits at the **middle of the straight** (regulation
 position — not the corner exit, where an earlier version of this game had it).
-All riders line up on that one line, side by side in individually marked gates
+All 4 riders line up on that one line, side by side in individually marked gates
 (white lines at right angles to the start line, extending back behind it), colored
-in FIM/PGE Ekstraliga order: red, blue, white, yellow, plus an extra green gate
-for a 5th rider (real speedway heats only run 4; this game races one more for a
-fuller field). Which gate the player lands in is randomized each race.
+in FIM/PGE Ekstraliga order: red, blue, white, yellow. Which gate the player
+lands in is randomized each race.
 
 ## Computer riders
 
-Three difficulty presets (`AI_LEVELS`) tune three knobs per AI rider:
+Five difficulty presets (`AI_LEVELS`) tune three knobs per AI rider:
 
 - **threshold** — how much angular error it tolerates before deciding to steer.
   Higher = later, sloppier reactions.
@@ -107,21 +106,32 @@ Three difficulty presets (`AI_LEVELS`) tune three knobs per AI rider:
 - **jitter** — the chance it acts on a steering decision each frame. Lower means
   more hesitation and missed corrections.
 
-| | threshold | lookahead | jitter | ~avg finish (5 laps, headless sim) |
+| | threshold | lookahead | jitter | ~avg finish (4 laps, headless sim) |
 |---|---|---|---|---|
 | Easy | 0.24-0.36 | 45-60 | 0.35-0.50 | ~48s |
 | Medium | 0.05-0.12 | 55-80 | 0.85-1.15 | ~34.5s |
 | Hard | 0.04-0.09 | 70-90 | 1.1-1.2 | ~33.5s |
+| Expert | 0.025-0.055 | 90-105 | 1.2-1.25 | ~32.75s |
+| Champion | 0.015-0.035 | 110-120 | 1.25-1.3 | ~32.1s |
+
+Diminishing returns from Hard upward are expected — the AI is approaching the
+same `maxSpeed` ceiling the player has, so there's a physical floor to lap times
+regardless of skill.
 
 AI also gets one difficulty-independent override: if it's pushed deep onto the
 inward (infield) apron, it steers *right* to peel off, since its normal left-only
 steering would otherwise just drive it further into that fence — a real dead-lock
 that showed up in testing before the override was added.
 
+### Legends mode
+
+An optional menu toggle races real multi-time world champions instead of generic
+names: Ivan Mauger, Hans Nielsen, and Greg Hancock fill the 3 AI gates. The
+player gets an editable name field, defaulting to Tomasz Gollob.
+
 ## Scoring
 
-3-2-1-0 per heat, PGE Ekstraliga style — only the top 3 score; with 5 riders, 4th
-and 5th both score 0 rather than inventing a negative or extra tier.
+3-2-1-0 per heat, PGE Ekstraliga style.
 
 ## Verification approach
 

@@ -342,9 +342,8 @@ const playerNameInput = document.getElementById("playerNameInput");
 
 const TOTAL_LAPS = 4;
 const RECORD_KEY = "speedway_best_lap";
-// PGE Ekstraliga-style scoring: 3-2-1-0 per heat (only the top 3 score; a 5th rider still
-// scores 0, same as 4th, rather than inventing a negative or extra tier).
-const HEAT_POINTS = [3, 2, 1, 0, 0];
+// PGE Ekstraliga-style scoring: 3-2-1-0 per heat.
+const HEAT_POINTS = [3, 2, 1, 0];
 
 // Computer rider difficulty presets. Threshold is how much angular error the AI tolerates
 // before it steers (higher = later, sloppier reactions); jitter is the chance it actually
@@ -356,6 +355,8 @@ const AI_LEVELS = {
   easy: { thresholdBase: 0.24, thresholdVar: 0.12, lookBase: 45, lookVar: 15, jitterBase: 0.35, jitterVar: 0.15 },
   medium: { thresholdBase: 0.05, thresholdVar: 0.07, lookBase: 55, lookVar: 25, jitterBase: 0.85, jitterVar: 0.30 },
   hard: { thresholdBase: 0.04, thresholdVar: 0.05, lookBase: 70, lookVar: 20, jitterBase: 1.1, jitterVar: 0.1 },
+  expert: { thresholdBase: 0.025, thresholdVar: 0.03, lookBase: 90, lookVar: 15, jitterBase: 1.2, jitterVar: 0.05 },
+  champion: { thresholdBase: 0.015, thresholdVar: 0.02, lookBase: 110, lookVar: 10, jitterBase: 1.25, jitterVar: 0.05 },
 };
 let aiDifficulty = "medium";
 
@@ -368,12 +369,11 @@ let inputLeft = false;
 let inputRight = false;
 let bestLapThisRace = Infinity;
 
-// Real FIM/PGE Ekstraliga gate colours (red, blue, white, yellow for gates 1-4), plus an
-// extra green gate for the 5th rider - real speedway only runs 4 in a heat, but this game
-// races one more for a fuller field.
-const GATE_COLORS = ["#e74c3c", "#3d7fe0", "#eeeeee", "#ffd23f", "#3fae5c"];
+// Real FIM/PGE Ekstraliga gate colours, in order: red (gate 1), blue (gate 2),
+// white (gate 3), yellow (gate 4).
+const GATE_COLORS = ["#e74c3c", "#3d7fe0", "#eeeeee", "#ffd23f"];
 // Optional "Legends mode": race real multi-time world champions instead of generic names.
-const LEGEND_NAMES = ["Ivan Mauger", "Hans Nielsen", "Greg Hancock", "Tony Rickardsson"];
+const LEGEND_NAMES = ["Ivan Mauger", "Hans Nielsen", "Greg Hancock"];
 const DEFAULT_LEGEND_PLAYER_NAME = "Tomasz Gollob";
 let legendsMode = false;
 
