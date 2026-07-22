@@ -108,15 +108,19 @@ Four difficulty presets (`AI_LEVELS`) tune three knobs per AI rider:
 
 | | threshold | lookahead | jitter | ~avg finish (4 laps, headless sim) |
 |---|---|---|---|---|
-| Easy | 0.24-0.36 | 45-60 | 0.35-0.50 | ~48s |
-| Medium | 0.16-0.26 | 48-66 | 0.45-0.60 | ~40s |
-| Hard | 0.135-0.225 | 50-70 | 0.58-0.77 | ~35.5s |
+| Easy | 0.23-0.35 | 45-60 | 0.36-0.50 | ~46.5s |
+| Medium | 0.16-0.26 | 48-66 | 0.45-0.60 | ~41s |
+| Hard | 0.17-0.27 | 49-68 | 0.50-0.66 | ~37s |
 | Expert | 0.05-0.12 | 55-80 | 0.85-1.15 | ~34s |
 
 Easy/Medium/Hard/Expert are spaced out deliberately, each a step tuned partway
 between its neighbors rather than reusing an old tier's numbers wholesale - an
 earlier version jumped straight from Easy (~48s) to a "Medium" that raced at
 Hard's pace (~34.5s), which felt like a cliff rather than a difficulty curve.
+These averages are measured against a proper `aiControl`-driven player proxy
+(the actual steering logic the game uses), not a simplified stand-in - an
+earlier tuning pass looked fine under a simpler test harness but collapsed
+Easy and Medium into the same pace once measured the real way.
 
 Diminishing returns from Hard upward are expected — the AI is approaching the
 same `maxSpeed` ceiling the player has, so there's a physical floor to lap times
