@@ -537,6 +537,8 @@ function updateHud() {
   const ranked = [...bikes].sort((a, b) => b.progress - a.progress);
   const pos = ranked.indexOf(playerBike) + 1;
   hudPos.textContent = `P${pos}`;
+  hudPos.style.color = playerBike.color;
+  hudPos.style.borderColor = playerBike.color;
   const lapShown = Math.min(playerBike.lap + 1, TOTAL_LAPS);
   hudLap.textContent = `Lap ${lapShown} / ${TOTAL_LAPS}`;
   // real speedway bikes top out around 125-130 km/h on the straight (Maciej Janowski's
@@ -659,6 +661,43 @@ function drawInfieldTower() {
   ctx.fillRect(x - 12, y - 57, 24, 12);
 }
 
+function textColorFor(hex) {
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.6 ? "#1a1005" : "#ffffff";
+}
+
+// Big, unmissable "this is your colour" marker planted on the infield grass, since the
+// player's gate (and therefore bike colour) is randomized each race.
+function drawPlayerColorBadge() {
+  if (!playerBike) return;
+  const x = TRACK.cx - TRACK.radius * 0.85;
+  const y = TRACK.cy - TRACK.radius * 0.05;
+  const r = 36;
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, r + 7, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.fillStyle = playerBike.color;
+  ctx.strokeStyle = "rgba(0,0,0,0.45)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = textColorFor(playerBike.color);
+  ctx.font = "900 20px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("YOU", x, y);
+  ctx.restore();
+}
+
 function drawInfieldStripes(innerPts) {
   ctx.save();
   ctx.beginPath();
@@ -722,6 +761,7 @@ function drawTrack() {
   strokePolygon(fenceInnerPts, "#d1495b", 2.5, [7, 6]);
 
   drawInfieldTower();
+  drawPlayerColorBadge();
 
   drawFloodlights();
 
@@ -809,13 +849,17 @@ function drawBike(b) {
   ctx.restore();
 
   if (b.isPlayer) {
-    ctx.fillStyle = "#ffd23f";
+    // neutral (not gate-coloured) so it never gets mistaken for "yellow = you"
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#1a1005";
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(b.x, b.y - 18);
     ctx.lineTo(b.x - 5, b.y - 26);
     ctx.lineTo(b.x + 5, b.y - 26);
     ctx.closePath();
     ctx.fill();
+    ctx.stroke();
   }
 }
 
