@@ -544,7 +544,11 @@ function frame(now) {
       }
     }
     updateHud();
-    if (bikes.every((b) => b.finished)) finishRace();
+    // end the race as soon as the player finishes, rather than waiting for the
+    // AI to complete their own laps - anyone still out on track at that point
+    // is ranked below the finishers by current on-track position (see the sort
+    // in finishRace: unfinished riders fall back to comparing b.progress).
+    if (playerBike.finished) finishRace();
   }
 
   render();

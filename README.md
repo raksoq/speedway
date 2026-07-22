@@ -139,7 +139,11 @@ player is Tomasz Gollob.
 
 ## Scoring
 
-3-2-1-0 per heat, PGE Ekstraliga style.
+3-2-1-0 per heat, PGE Ekstraliga style. The race ends the moment the player
+finishes, rather than waiting for the AI to complete their own laps - anyone
+still on track at that point is ranked below the finishers by current
+on-track position (`Bike.progress`), not left to keep racing or DNF'd
+arbitrarily.
 
 ## Verification approach
 
