@@ -338,7 +338,6 @@ const steerLeftBtn = document.getElementById("steerLeftBtn");
 const steerRightBtn = document.getElementById("steerRightBtn");
 const diffBtns = document.querySelectorAll(".diffBtn");
 const legendsToggle = document.getElementById("legendsToggle");
-const playerNameInput = document.getElementById("playerNameInput");
 
 const TOTAL_LAPS = 4;
 const RECORD_KEY = "speedway_best_lap";
@@ -384,7 +383,7 @@ function setupRace() {
     const isPlayer = i === playerGate;
     let name;
     if (isPlayer) {
-      name = legendsMode ? (playerNameInput.value.trim() || DEFAULT_LEGEND_PLAYER_NAME) : "YOU";
+      name = legendsMode ? DEFAULT_LEGEND_PLAYER_NAME : "YOU";
     } else {
       name = legendsMode ? LEGEND_NAMES[nextLegend++] : `RIDER ${i + 1}`;
     }
@@ -502,7 +501,6 @@ diffBtns.forEach((btn) => {
 });
 legendsToggle.addEventListener("change", () => {
   legendsMode = legendsToggle.checked;
-  playerNameInput.classList.toggle("hidden", !legendsMode);
 });
 
 function returnToMenu() {

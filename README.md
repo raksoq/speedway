@@ -126,8 +126,8 @@ that showed up in testing before the override was added.
 ### Legends mode
 
 An optional menu toggle races real multi-time world champions instead of generic
-names: Ivan Mauger, Hans Nielsen, and Greg Hancock fill the 3 AI gates. The
-player gets an editable name field, defaulting to Tomasz Gollob.
+names: Ivan Mauger, Hans Nielsen, and Greg Hancock fill the 3 AI gates, and the
+player is Tomasz Gollob.
 
 ## Scoring
 
