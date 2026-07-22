@@ -306,6 +306,21 @@ function aiControl(bike) {
 const canvas = document.getElementById("track");
 const ctx = canvas.getContext("2d");
 
+// Scale the whole stage to fit the viewport (never upscale past native size) so every
+// control stays on-screen and clickable regardless of window size.
+const stage = document.getElementById("stage");
+function fitStage() {
+  const margin = 24;
+  const scale = Math.min(
+    (window.innerWidth - margin * 2) / 1100,
+    (window.innerHeight - margin * 2) / 650,
+    1
+  );
+  stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+}
+window.addEventListener("resize", fitStage);
+fitStage();
+
 const hudPos = document.getElementById("hudPos");
 const hudLap = document.getElementById("hudLap");
 const hudSpeed = document.getElementById("hudSpeed");

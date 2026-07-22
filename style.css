@@ -13,10 +13,13 @@ html, body {
 }
 
 #stage {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 1100px;
   height: 650px;
-  margin: 20px auto 0;
+  transform-origin: center center;
+  transform: translate(-50%, -50%);
 }
 
 canvas#track {
