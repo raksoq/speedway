@@ -436,7 +436,7 @@ function finishRace() {
     const li = document.createElement("li");
     const t = b.finished ? formatTime(b.finishTime) : "DNF";
     const pts = b.finished ? HEAT_POINTS[i] : 0;
-    li.textContent = `${i + 1}. ${b.name} — ${pts} pkt (${t})`;
+    li.textContent = `${b.name} — ${pts} pkt (${t})`;
     if (b.isPlayer) li.classList.add("you");
     resultsList.appendChild(li);
   });
