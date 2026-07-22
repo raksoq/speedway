@@ -337,6 +337,8 @@ const resetBtn = document.getElementById("resetBtn");
 const steerLeftBtn = document.getElementById("steerLeftBtn");
 const steerRightBtn = document.getElementById("steerRightBtn");
 const diffBtns = document.querySelectorAll(".diffBtn");
+const legendsToggle = document.getElementById("legendsToggle");
+const playerNameInput = document.getElementById("playerNameInput");
 
 const TOTAL_LAPS = 4;
 const RECORD_KEY = "speedway_best_lap";
@@ -370,12 +372,24 @@ let bestLapThisRace = Infinity;
 // extra green gate for the 5th rider - real speedway only runs 4 in a heat, but this game
 // races one more for a fuller field.
 const GATE_COLORS = ["#e74c3c", "#3d7fe0", "#eeeeee", "#ffd23f", "#3fae5c"];
+// Optional "Legends mode": race real multi-time world champions instead of generic names.
+const LEGEND_NAMES = ["Ivan Mauger", "Hans Nielsen", "Greg Hancock", "Tony Rickardsson"];
+const DEFAULT_LEGEND_PLAYER_NAME = "Tomasz Gollob";
+let legendsMode = false;
 
 function setupRace() {
   const playerGate = Math.floor(Math.random() * GATE_COLORS.length);
-  bikes = GATE_COLORS.map((color, i) =>
-    new Bike(color, i === playerGate ? "YOU" : `RIDER ${i + 1}`, i === playerGate)
-  );
+  let nextLegend = 0;
+  bikes = GATE_COLORS.map((color, i) => {
+    const isPlayer = i === playerGate;
+    let name;
+    if (isPlayer) {
+      name = legendsMode ? (playerNameInput.value.trim() || DEFAULT_LEGEND_PLAYER_NAME) : "YOU";
+    } else {
+      name = legendsMode ? LEGEND_NAMES[nextLegend++] : `RIDER ${i + 1}`;
+    }
+    return new Bike(color, name, isPlayer);
+  });
   const lvl = AI_LEVELS[aiDifficulty] || AI_LEVELS.medium;
   // Regulation start: all 4 riders on one line, side by side in their own marked gate.
   const p = centerlineAt(START_S);
@@ -485,6 +499,10 @@ diffBtns.forEach((btn) => {
     aiDifficulty = btn.dataset.level;
     diffBtns.forEach((b) => b.classList.toggle("active", b === btn));
   });
+});
+legendsToggle.addEventListener("change", () => {
+  legendsMode = legendsToggle.checked;
+  playerNameInput.classList.toggle("hidden", !legendsMode);
 });
 
 function returnToMenu() {
@@ -652,18 +670,6 @@ function drawAdBoards() {
   }
 }
 
-function drawInfieldTower() {
-  const x = TRACK.cx + TRACK.radius * 0.85;
-  const y = TRACK.cy - TRACK.radius * 0.25;
-  ctx.fillStyle = "#3a3a3a";
-  ctx.fillRect(x - 3, y - 42, 6, 42);
-  ctx.fillRect(x - 16, y - 8, 32, 3);
-  ctx.fillStyle = "#565656";
-  ctx.fillRect(x - 15, y - 60, 30, 20);
-  ctx.fillStyle = "#8ec9e0";
-  ctx.fillRect(x - 12, y - 57, 24, 12);
-}
-
 function textColorFor(hex) {
   const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
   const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
@@ -763,7 +769,6 @@ function drawTrack() {
   strokePolygon(fenceOuterPts, "#d1495b", 2.5, [7, 6]);
   strokePolygon(fenceInnerPts, "#d1495b", 2.5, [7, 6]);
 
-  drawInfieldTower();
   drawPlayerColorBadge();
 
   drawFloodlights();
